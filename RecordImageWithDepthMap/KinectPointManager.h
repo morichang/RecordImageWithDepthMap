@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 
 #include <fstream>
 #include <list>
@@ -7,10 +7,14 @@
 #include <opencv2/opencv.hpp>
 
 #include <Kinect.h>
-#include "../../../../Documents/Visual Studio 2013/Projects/Kinect2Wrapper/Kinect2Wrapper/Kinect2.h"
+#include "../../Kinect2Wrapper/Kinect2Wrapper/Kinect2.h"
+//#include "../../../../Documents/Visual Studio 2013/Projects/Kinect2Wrapper/Kinect2Wrapper/Kinect2.h"
 
 class KinectPointManager{
 private:
+	cv::Size color;
+	cv::Size depth;
+
 	std::string filename;
 	std::ofstream ofs;
 
@@ -23,10 +27,16 @@ private:
 
 	boost::posix_time::ptime lastUpdate;
 	double targetFPS;
+	int colorBytesPerPixel;
+
 public:
+	KinectPointManager(cv::Size color, cv::Size depth);
+
 	void recordInit(std::string filename);
-	void setData(); // どういう形でデータを保存するか…
 	void recordClose();
-	void convKinectDataToImage(Kinect2Sensor &kinect, cv::Mat &image, cv::Mat &depth); // Kinectで取得したデータをImageとDepth Mapに保存する?
+
+	void setData(); // どういう形でデータを保存するか…ImageはPNG?DepthもPNG?顔だけ検出してそれだけPNGで他をJPG?
+	
+	void convKinectDataToImage(Kinect2Sensor &kinect, cv::Mat &image, cv::Mat &raw_depth, cv::Mat &high_depth); // Kinectで取得したデータをImageとDepth Mapに保存する?
 	void depthmapRefinement(cv::Mat image, cv::Mat srcDepth); // Depth MapがボロボロなのでImageを利用して解像度を上げる
 };

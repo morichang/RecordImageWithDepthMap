@@ -1,7 +1,15 @@
-#pragma once
+//#pragma once
 
 #include "KinectPointManager.h"
 
+KinectPointManager::KinectPointManager(cv::Size color, cv::Size depth){
+	this->color = color;
+	this->depth = depth;
+	std::cout << color.width << "," << color.height << std::endl;
+	std::cout << depth.width << "," << depth.height << std::endl;
+}
+
+// 記録するファイルを開く(生成)
 void KinectPointManager::recordInit(std::string filename){
 	this->filename = filename;
 
@@ -17,37 +25,96 @@ void KinectPointManager::recordInit(std::string filename){
 	maxBufferSize = 1024 * 1024 * 128; // 64MB，根拠なし?
 }
 
+// 記録したファイルを閉じる(保存)
 void KinectPointManager::recordClose(){
 	std::cout << "File Close" << std::endl;
 	flush();
 	ofs.close();
 }
 
+// ファイルに書き込むデータの準備
 void KinectPointManager::setData(){
+	// ファイルが開かれているか確認
+	if (!ofs.is_open())
+	{
+		std::cout << "開いてないじゃん?" << std::endl;
+	}
+	// 現在時刻の取得
+	auto nowTime = boost::posix_time::microsec_clock::local_time();
+	//保存すべき時刻かどうかチェック
+	double interval = 1000.0 / targetFPS;
+	if ((nowTime - lastUpdate).total_milliseconds() < interval) {
+		return;
+	}
+	// 更新時刻に現在時刻をセット
+	lastUpdate = nowTime;
+
+	// ここで書き込むデータを用意する
 
 }
 
-void KinectPointManager::convKinectDataToImage(Kinect2Sensor &kinect, cv::Mat &image, cv::Mat &depth){ // DataをImageとDepthMapに保存する?
-	cv::Mat frameData = kinect.getFrame();
-	unsigned char *colorImagePointer = frameData.data;
+// データをファイルに書き込む (BinaryCvMatを参考に)
+void KinectPointManager::flush(){
 
-	for (int y = 0; y < kinect.getDepthSize().height; y++){
-		for (int x = 0; x < kinect.getDepthSize().width; x++){
-			cv::Point colorPoint = kinect.getMapper()->getColorUVFromCameraPoint;
-			if (0 <= colorPoint.x && colorPoint.x < kinect.getColorSize().width && 0 <= colorPoint.y && colorPoint.y < kinect.getColorSize().height){
-				// imageにRGB情報を入れていく
-				unsigned int index = (colorPoint.y * kinect.getColorSize().width + colorPoint.x) * 3;
-				// カラーを入れていく
-				image.data[index + 0] = colorImagePointer[index + 0];
-				image.data[index + 1] = colorImagePointer[index + 1];
-				image.data[index + 2] = colorImagePointer[index + 2];
+}
+
+// Kinectで取得したデータをImageとDepthImageにする
+void KinectPointManager::convKinectDataToImage(Kinect2Sensor &kinect, cv::Mat &image, cv::Mat &raw_depth, cv::Mat &high_depth){ // DataをImageとDepthMapに保存する?
+	int height = 0, width = 0;
+	std::vector<DepthSpacePoint> depthSpace(color.width * color.height);
+	HRESULT hResult = S_OK;
+	// ImageとMatをまっさらに
+	if (!image.empty() && !raw_depth.empty()){
+		image = cv::Mat::zeros(color, CV_8UC3);
+		raw_depth = cv::Mat::zeros(depth, CV_16UC1);
+	}
+	image = kinect.getFrame();
+
+	std::cout << image.channels() << std::endl;
+
+	auto depth_buffer = kinect.getDepthBuffer();
+
+	// depth_buffer to cv::Mat (Raw Depth Image)
+	raw_depth = cv::Mat(cv::Size(depth.width, depth.height), CV_16UC1, &depth_buffer[0]).clone();
+
+	hResult = kinect.getCoordinateMapper()->MapColorFrameToDepthSpace(depth_buffer.size(), &depth_buffer[0], depthSpace.size(), &depthSpace[0]);
+
+	if (FAILED(hResult)) {
+		std::cerr << "Error : ICoordinateMapper::MapColorFrameToDepthSpace()" << std::endl;
+	}
+
+	// Mapping Depth to Color Resolution
+	std::vector<UINT16> buffer(color.width * color.height);
+
+	for (int colorY = 0; colorY < color.height; colorY++){
+		for (int colorX = 0; colorX < color.width; colorX++){
+			unsigned int colorIndex = colorY * color.width + colorX;
+			int depthX = static_cast<int>(depthSpace[colorIndex].X + 0.5f);
+			int depthY = static_cast<int>(depthSpace[colorIndex].Y + 0.5f);
+			if ((0 <= depthX) && (depthY < depth.width) && (0 <= depthY) && (depthY < depth.height)){
+				unsigned int depthIndex = depthY * depth.width + depthX;
+				buffer[colorIndex] = depth_buffer[depthIndex];
 			}
-			cv::imshow("Color Image", image);
 		}
 	}
 
+	// buffer to cv::Mat (Convert to Color Resolution Depth Image)
+	high_depth = cv::Mat(color, CV_16UC1, &buffer[0]).clone();
+
+	// Iterator使ってdepthにデータ入れてたけど意味なかったwww
+	/*for (auto itr = depth_buffer.begin(); itr != depth_buffer.end(); itr++,width++){
+		if (height == 0 || (width / kinect.getDepthSize().width) != 0){
+			depth.at<UINT16>(height, width) = *itr;
+		}
+		else if ((width / kinect.getDepthSize().width) == 0){
+			height += 1;
+			width = 0;
+			depth.at<UINT16>(height, width) = *itr;
+		}
+	}*/
 }
 
+// DepthMapを高解像度にする(黒地の取得されない部分も忠実になれば…)
 void KinectPointManager::depthmapRefinement(cv::Mat image, cv::Mat srcDepth){
 
 }
