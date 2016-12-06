@@ -27,7 +27,7 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -55,6 +55,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\Program Files %28x86%29\PCL 1.7.2\include\pcl-1.7;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\Boost\include\boost-1_57;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\Eigen\eigen3;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\FLANN\include;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\Qhull\include;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\VTK\include\vtk-6.2;C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409\inc;C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -72,6 +73,9 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\Program Files %28x86%29\PCL 1.7.2\include\pcl-1.7;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\Boost\include\boost-1_57;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\Eigen\eigen3;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\FLANN\include;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\Qhull\include;C:\Program Files %28x86%29\PCL 1.7.2\3rdParty\VTK\include\vtk-6.2;C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409\inc;C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zm350 %(AdditionalOptions)</AdditionalOptions>
+      <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -85,12 +89,18 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BackgroundSubtraction.h" />
+    <ClInclude Include="BinaryMatIO.h" />
+    <ClInclude Include="DepthDenoising.h" />
     <ClInclude Include="KinectPointDef.h" />
     <ClInclude Include="KinectPointManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BackgroundSubtraction.cpp" />
+    <ClCompile Include="BinaryMatIO.cpp" />
+    <ClCompile Include="DepthDenoising.cpp" />
     <ClCompile Include="KinectPointManager.cpp" />
     <ClCompile Include="RecordImageWithDepthMap.cpp" />
     <ClCompile Include="stdafx.cpp">

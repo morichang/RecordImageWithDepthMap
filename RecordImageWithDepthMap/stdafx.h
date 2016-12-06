@@ -28,6 +28,7 @@
 #pragma comment(lib, "opencv_highgui"	CV_VERSION_STR CV_EXT_STR)
 #pragma comment(lib, "opencv_imgproc"	CV_VERSION_STR CV_EXT_STR)
 #pragma comment(lib, "opencv_video"		CV_VERSION_STR CV_EXT_STR)
+#pragma comment(lib, "opencv_photo"     CV_VERSION_STR CV_EXT_STR)
 
 
 /*
