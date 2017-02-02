@@ -12,36 +12,26 @@
 
 class KinectPointManager{
 private:
+	HRESULT hResult;
+
+	std::vector<DepthSpacePoint> depthSpace;
+	std::vector<UINT16> buffer;
+
 	cv::Size color;
 	cv::Size depth;
 
-	std::string filename;
-	std::ofstream ofs;
-
-	std::list<boost::posix_time::ptime> timeList;
-	std::list<cv::Mat> imageList;
-	std::list<cv::Mat> depthList;
-
-	void flush();
-
-	size_t maxBufferSize;
-	size_t nowBuffer;
-
-	boost::posix_time::ptime lastUpdate;
-	bool initFlag;
+	int colorW;
+	int colorH;
+	int depthW;
+	int depthH;
+	
 	int frameCount;
-	double targetFPS;
 	unsigned int colorBytesPerPixel;
+	bool initFlag;
 
 public:
 	KinectPointManager(cv::Size color, cv::Size depth);
-
-	void recordInit(std::string filename);
-	void recordClose();
-
-	void setData(); // どういう形でデータを保存するか…ImageはPNG?DepthもPNG?顔だけ検出してそれだけPNGで他をJPG?
 	
-	void convKinectDataToImage(Kinect2Sensor &kinect, cv::Mat &image, cv::Mat &raw_depth, cv::Mat &high_depth, std::vector<UINT16> &depthBuffer); // Kinectで取得したデータをImageとDepth Mapに保存する?
+	void convKinectDataToImage(Kinect2Sensor &kinect, cv::Mat &color_res_depth); // Kinectで取得したデータをColor解像度のDepthMapにする
 	void convImageResolutionToDepthSize(Kinect2Sensor &kinect, cv::Mat &image, cv::Mat &depth_res_image);
-	void depthmapRefinement(cv::Mat image, cv::Mat srcDepth); // Depth MapがボロボロなのでImageを利用して解像度を上げる
 };
