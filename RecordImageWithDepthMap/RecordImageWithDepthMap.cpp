@@ -4,8 +4,10 @@
 #include "stdafx.h"
 
 #include "KinectPointManager.h"
+#include "KinectAudioManager.h"
 #include "BackgroundSubtraction.h"
 #include "DepthDenoising.h"
+#include "BinaryMatIO.h"
 
 #include "../../Kinect2Wrapper/Kinect2Wrapper/Kinect2.h"
 //#include "../../../../Documents/Visual Studio 2013/Projects/Kinect2Wrapper/Kinect2Wrapper/Kinect2.h"
@@ -31,126 +33,76 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	cv::Size colorSize(kinect.getColorSize().width, kinect.getColorSize().height);
 	cv::Size depthSize(kinect.getDepthSize().width, kinect.getDepthSize().height);
-	CameraIntrinsics cameraIntrinsics;
-	std::ofstream outputFile("cameraIntrinsics.txt");
 
 	KinectPointManager KPManager(colorSize, depthSize);
-	BackgroundSubtraction back(colorSize);
+	KinectAudioManager KAManager;
+	BinaryMatIO recorder = BinaryMatIO();
+	//BackgroundSubtraction back(colorSize);
 
 	// Key入力用
-	cv::imshow("Key Capture", NULL);
+	//cv::imshow("Key Capture", NULL);
 
-	cv::Mat image = cv::Mat::zeros(colorSize, CV_8UC3);
-	cv::Mat color = cv::Mat::zeros(colorSize, CV_8UC3);
-	cv::Mat src_image = cv::Mat::zeros(colorSize, CV_8UC3);
-	cv::Mat depth_res_image = cv::Mat::zeros(depthSize, CV_8UC3);
-	cv::Mat harfImage = cv::Mat::zeros(colorSize.width/2,colorSize.height/2, CV_8UC3);
-	cv::Mat raw_depth = cv::Mat::zeros(depthSize, CV_16UC1);
-	cv::Mat high_depth = cv::Mat::zeros(colorSize, CV_16UC1);
-	cv::Mat src_depth;
-	cv::Mat depth;
-	cv::Mat split_image = cv::Mat::zeros(colorSize, CV_8UC3);
-	cv::Mat split_depth;
-	std::vector<UINT16> depthBuffer;
-	std::vector<cv::Mat> rawDepth_array;
+	cv::Mat image = cv::Mat(colorSize, CV_8UC3);
+	cv::Mat depth = cv::Mat(colorSize, CV_16UC1);
+	//cv::Mat harfImage = cv::Mat(colorSize.width/2,colorSize.height/2, CV_8UC3);
+
+	boost::posix_time::ptime nowTime;
+	boost::posix_time::ptime lastUpdate;
 
 	while (kinect.update());
 
 	std::cout << "Kinect起動します!" << std::endl;
 
+	//KAManager.audioInitialize(kinect);
+
+	bool kinectUpdated = false;
+	
+	boost::posix_time::ptime recordStart = boost::posix_time::microsec_clock::local_time();
+	std::ostringstream oss;
+	auto facet = new boost::posix_time::time_facet("%Y-%m-%d_%H-%M-%S");  // 2017-01-09_03:24:00
+	oss.imbue(std::locale(oss.getloc(), facet));
+	oss << recordStart;
+
+	recorder.recordInitialize(oss.str() + "_" + recorder.computerName + ".bin", true);
+
+	double totalMinutes = 0;
+	const double recordMinutes = 3 * 60 * 1000;  // 3[m] * 60[s] * 1000[ms]
+
+	lastUpdate = recordStart;
+
 	char key = 0;
-	int count = 0;
-	while (key != 'q'){
+	while (totalMinutes < recordMinutes){
 		if (useKinect){
-			bool kinectUpdated = kinect.update();
+			nowTime = boost::posix_time::microsec_clock::local_time();
+			kinectUpdated = kinect.update();
 
 			if (kinectUpdated){
-				hResult = kinect.getCoordinateMapper()->GetDepthCameraIntrinsics(&cameraIntrinsics);
-				if (FAILED(hResult)) {
-					std::cerr << "Error : ICoordinateMapper::GetDepthCameraIntrinsics()" << std::endl;
-				}
-				outputFile << "FocalLength" << cameraIntrinsics.FocalLengthX << "," << cameraIntrinsics.FocalLengthY << "\n";
-				outputFile << "PrincipalPoint" << cameraIntrinsics.PrincipalPointX << "," << cameraIntrinsics.PrincipalPointY << "\n";
-				outputFile << "RadialDistortionFourthOrder" << cameraIntrinsics.RadialDistortionFourthOrder << "\n";
-				outputFile << "RadialDistortionSecondOrder" << cameraIntrinsics.RadialDistortionSecondOrder << "\n";
-				outputFile << "RadialDistortionSixthOrder" << cameraIntrinsics.RadialDistortionSixthOrder << "\n";
-				outputFile.flush();
-				outputFile.close();
-				//src_image = kinect.getFrame();
-				KPManager.convKinectDataToImage(kinect, image, raw_depth, high_depth, depthBuffer);
-				KPManager.convImageResolutionToDepthSize(kinect, src_image, depth_res_image);
+				// Imageに現フレームの画像を入れる
+				image = kinect.getFrame();
+				KPManager.convKinectDataToImage(kinect, depth);
+				recorder.setData(image, depth);
+				//KAManager.audioUpdate();
 				//back.updateImageAndDepth(src_image, image, split_image, src_depth, high_depth, split_depth);
-
-				//std::cout << "撮れてる" << std::endl;
-				if (key == 'c'){
-					image.copyTo(src_image);
-				   high_depth.copyTo(src_depth);
-				}
 			}
-			
-			if (!image.empty()) {
+
+			if (!image.empty() && !depth.empty()) {
 				// 画像確認用
 				//cv::resize(image, harfImage, cv::Size(), 0.5, 0.5);
 				//cv::imshow("Color Image", harfImage);
-				//cv::resize(src_image, split_image, cv::Size(), 0.5, 0.5);
-				//raw_depth.convertTo(depth, CV_8UC1, -255.0f / 8000.0f, 255.0f);
-				//cv::imshow("Depth Resolution Color Image", depth_res_image);
-				//cv::imshow("Raw Depth Image", raw_depth);
-				//scv::imshow("Color Resolution Depth Image", high_depth);
-				//cv::imshow("Depth Image", depth);
-				//cv::imshow("Test1", src_image);
-				//cv::imshow("Test2", split_image);
-				//cv::imwrite("Test.png", split_image);
-				cv::imwrite("color" + std::to_string(count) + ".png", depth_res_image);
-				cv::imwrite("depth" + std::to_string(count) + ".png", raw_depth);
-				if (key == 's'){
-					cv::imwrite("depth.png", raw_depth);
-					//cv::imwrite("color_image.png", image);
-					//cv::imwrite("raw_depth.png", high_depth);
-					//cv::imwrite("depth_image.png", depth);
-					//cv::imwrite("backgroundSubtraction_image.png", split_image);
-					//cv::imwrite("backgroundSubtraction_depth.png", split_depth);
-					//cv::imwrite("test_depth_res_image.png", depth_res_image);
-				}
+				//cv::imshow("Color Resolution Depth Image", depth);
 				image.release();
-				//src_image.release();
-				raw_depth.release();
-				count++;
-				if (count > 60){
-					break;
-				}
+				depth.release();
 			}
+
+			totalMinutes += (nowTime - lastUpdate).total_milliseconds();
+			lastUpdate = nowTime;
 		}
-		/*if (key == 'r'){
-			std::string srcImage = "color_image.png";
-			std::string srcDepth = "raw_depth.png";
-			cv::Mat readImage = cv::imread(srcImage, 1);
-			cv::Mat readDepth = cv::imread(srcDepth, -1);
-			cv::Mat resizeImage = cv::Mat::zeros(1080, 1440, CV_8UC3);
-			cv::Mat resizeDepth = cv::Mat::zeros(1080, 1440, CV_16UC1);
-			if (readDepth.type() == CV_16UC1 && readImage.type() == CV_8UC3){
-				std::cout << "Type合ってる!:" << readImage.type() << "," << readDepth.type() << std::endl;
-				std::cout << readDepth.size().width << "," << readDepth.size().height << std::endl;
-			}
-			for (int y = 0; y < readImage.rows; y++){
-				for (int x = 0; x < 1440; x++){
-					resizeImage.at<cv::Vec3b>(y, x)[0] = readImage.at<cv::Vec3b>(y, x + 240)[0];
-					resizeImage.at<cv::Vec3b>(y, x)[1] = readImage.at<cv::Vec3b>(y, x + 240)[1];
-					resizeImage.at<cv::Vec3b>(y, x)[2] = readImage.at<cv::Vec3b>(y, x + 240)[2];
-				}
-			}
-			cv::imshow("aa", resizeImage);
-			cv::imwrite("resize_image.png", resizeImage);
-			for (int y = 0; y < readDepth.rows; y++){
-				for (int x = 0; x < 1440; x++){
-					resizeDepth.at<UINT16>(y, x) = readDepth.at<UINT16>(y, x + 240);
-				}
-			}
-			cv::imshow("bb", resizeDepth);
-			cv::imwrite("resize_depth_image.png", resizeDepth);
-		}*/
-		key = cv::waitKey(1); //ウィンドウの更新
+		//recorder.readData();
+		//key = cv::waitKey(1); //ウィンドウの更新
 	}
+
+	KAManager.audioClose();
+	recorder.recordClose();
 
 	return 0;
 }
