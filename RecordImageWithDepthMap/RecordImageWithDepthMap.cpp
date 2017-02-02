@@ -59,7 +59,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	boost::posix_time::ptime recordStart = boost::posix_time::microsec_clock::local_time();
 	std::ostringstream oss;
-	auto facet = new boost::posix_time::time_facet("%Y-%m-%d_%H-%M-%S");  // 2017-01-09_03:24:00
+	auto facet = new boost::posix_time::time_facet("%Y-%m-%dT%H-%M-%S");  // 2017-01-09T03-24-00
 	oss.imbue(std::locale(oss.getloc(), facet));
 	oss << recordStart;
 
@@ -78,7 +78,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 			if (kinectUpdated){
 				// Imageに現フレームの画像を入れる
-				image = kinect.getFrame();
+				image = kinect.getColorFrame();
 				KPManager.convKinectDataToImage(kinect, depth);
 				recorder.setData(image, depth);
 				//KAManager.audioUpdate();
@@ -101,7 +101,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		//key = cv::waitKey(1); //ウィンドウの更新
 	}
 
-	KAManager.audioClose();
+	//KAManager.audioClose();
 	recorder.recordClose();
 
 	return 0;
